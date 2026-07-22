@@ -1,0 +1,97 @@
+------------------------KINETICRAIL ENGINE - USER INPUT LIST------------------------
+
+I. STATIC SETUP INPUTS (Define once before simulation starts)
+
+TRAIN MASS (Tonnes): Total weight of locomotive + all attached wagons.
+Formula (convert to SI units):
+Mass_kg = TrainMass_tonnes × 1000
+MAX TRACTIVE EFFORT (kN):
+Maximum pulling force available at low speed.
+F_max = MaxTractiveEffort_kN × 1000   (Newtons)
+
+LOCOMOTIVE POWER (kW or HP):
+Power_W = Power_kW × 1000
+If HP is used:
+Power_W = Power_HP × 746
+Power-limited traction at speed v: power = Power_W / v
+
+TRACK GRADIENT (‰ or %)
+Convert gradient to slope:
+If in ‰ : Gradient = gradient_permille / 1000
+If in % : Gradient = gradient_percent / 100
+Gradient resistance:
+F_grade = Mass_kg × g × Gradient
+g = 9.81 m/s²
+
+TRACK CONDITION (Enum Index): dry, wet, icy
+Adhesion limits maximum usable traction.
+Typical adhesion values:
+Dry = 0.35
+Wet = 0.25
+Icy = 0.15
+Maximum adhesion force:
+F_adhesion = Mass_kg × g × adhesionFactor
+Maximum usable traction:
+F_tractive = min(F_max , F_power , F_adhesion)
+
+-------------------------------------------------------------------------------
+
+II. DYNAMIC OPERATIONAL INPUTS (Real-time controls)
+
+THROTTLE PERCENTAGE (0 to 100):
+Controls fraction of available tractive effort.
+F_engine = F_tractive × (Throttle / 100)
+
+TARGET BRAKE PIPE PRESSURE (Bar)
+Convert brake pipe pressure to brake ratio:
+BrakeRatio = (5.0 − Pressure_bar) / 5.0
+Maximum braking capability (typical):
+BrakeForce_max = 0.25 × Mass_kg × g
+Brake force applied:
+F_brake = BrakeRatio × BrakeForce_max
+
+REVERSER POSITION (-1, 0, 1)
+Direction multiplier:
+Direction =
++1 → Forward
+ 0 → Neutral
+-1 → Reverse
+
+Apply to engine force:
+F_engine = F_engine × Direction
+
+TOTAL FORCE ON TRAIN (used every timestep)
+F_total = F_engine − F_brake − F_davis − F_grade
+Acceleration:
+a = F_total / Mass_kg
+
+PHYSICS TIME STEP (Seconds)
+Numerical integration timestep:
+v_new = v_old + a × dt
+x_new = x_old + v × dt
+
+DAVIS COEFFICIENT A (Rolling Resistance)
+DAVIS COEFFICIENT B (Flange Friction)
+DAVIS COEFFICIENT C (Aerodynamic Drag)
+Davis resistance equation:
+F_davis = A + B·v + C·v²
+v = train speed (m/s)
+Result in Newtons.
+-------------------------------------------------------------------------------
+
+III. SIMULATION EXECUTION PARAMETERS (Headless/Theoretical Mode)
+
+TARGET RUN DISTANCE (km)
+TargetDistance_m = Distance_km × 1000
+Stop when Position ≥ TargetDistance_m
+
+LOGGING FREQUENCY (Seconds)
+if (SimulationTime ≥ NextLogTime)
+    logData();
+    NextLogTime += LogInterval;
+
+WARP FACTOR (Float)
+Simulation time scaling:
+Simulated_dt = dt × WarpFactor
+SimulationTime += Simulated_dt
+-------------------------------------------------------------------------------
